@@ -36,6 +36,7 @@ deploy-to-oke:
         code: sleep 30
         
     - kubectl:
+        debug: true
         name: create namespace    
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_TOKEN
@@ -43,6 +44,7 @@ deploy-to-oke:
         command: create namespace $WERCKER_APPLICATION_OWNER_NAME
         
     - kubectl:
+        debug: true
         name: create OCR secret
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_TOKEN
@@ -50,6 +52,7 @@ deploy-to-oke:
         command: create secret docker-registry wrelease --docker-server=wcr.io --docker-username=$WERCKER_APPLICATION_OWNER_NAME --docker-password=$KUBERNETES_TOKEN --docker-email=${WERCKER_APPLICATION_OWNER_NAME}@mail.com --namespace=$WERCKER_APPLICATION_OWNER_NAME
         
     - kubectl:
+        debug: true
         name: create deplyoment
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_TOKEN
@@ -61,6 +64,7 @@ deploy-to-oke:
         code: cat ingress.yml
 
     - kubectl:
+        debug: true
         name: create Ingress configuration
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_TOKEN
@@ -68,6 +72,7 @@ deploy-to-oke:
         command: create -f $WERCKER_ROOT/ingress.yml --namespace=$WERCKER_APPLICATION_OWNER_NAME
 
     - kubectl:
+        debug: true
         name: get LoadBalancer public IP address
         server: $KUBERNETES_MASTER
         token: $KUBERNETES_TOKEN
