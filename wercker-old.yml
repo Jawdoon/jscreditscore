@@ -5,15 +5,11 @@ build:
         name: A step that executes `npm install` command
         code: npm install  
 
-push-to-docker-registry:
+push-to-releases:
   steps:
     # Push to public docker repo Container Registry (CR)
     - internal/docker-push:
-        username: $DOCKER_USERNAME
-        password: $DOCKER_PASSWORD
-        tag: "1.0"
-        repository: $DOCKER_REPOSITORY
-        registry: https://index.docker.io/v2/
+        tag: $WERCKER_GIT_BRANCH-$WERCKER_GIT_COMMIT
         cmd: node /pipeline/source/app.js
 
 deploy-to-oke:
@@ -83,3 +79,44 @@ deploy-to-oke:
         insecure-skip-tls-verify: true
         command: get svc -o jsonpath='{.items[*].status.loadBalancer.ingress[*].ip}' --all-namespaces
 
+functional-test:
+  steps:
+    - script:
+        name: Run and Test microservice
+        code: |
+              mkdir -p "/pipeline"
+              node $WERCKER_ROOT/app.js &
+              sleep 5
+              CREDITSCORE_URL=http://localhost:3000/creditscore
+              echo 'Microservice URL=' $CREDITSCORE_URL
+              if curl -X POST -H "Content-Type: application/json" -X POST -d '{"firstname":"John","lastname":"Doe","dateofbirth":"01/01/2015","ssn":"111223333"}' $CREDITSCORE_URL | grep "firstname"
+              then
+                  # if the keyword is in the conent
+                  echo "Test passed"
+              else
+                  echo "Test failed"
+                  exit -1
+              fi
+              sleep 1
+
+ui-functional-test:
+  box:
+    id: peternagy/chrome-protractor-headless-test:node9.2-chrome62
+  steps:
+    - script:
+        name: Run UI test
+        code: | 
+              nohup node $WERCKER_ROOT/app.js > creditscoreapp.log &
+              echo 'Application URL to test: http://localhost:3000/creditscore'
+              protractor $WERCKER_ROOT/test/protractor.conf.js
+              exit_status=$?
+              echo 'CreditScore app server log :::START'
+              cat creditscoreapp.log
+              echo 'CreditScore app server log :::END'
+              if [ $exit_status -eq 0 ]; then
+                echo "UI test passed"
+              else
+                echo "UI test failed"
+                exit -1
+              fi                
+              
